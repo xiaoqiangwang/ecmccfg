@@ -11,6 +11,11 @@ epicsEnvUnset(ECMC_PLC_RATE_) # clean up, temp variable
 epicsEnvSet("PLC_ID", {{ plc.id }})
 ecmcConfigOrDie "Cfg.CreatePLC({{ plc.id }},${ECMC_PLC_SAMPLE_RATE_MS})"
 
+#- Load file
+{%- if plc.file %}
+loadPCLFile.cmd "FILE={{ plc.file }},PLC_ID={{ plc.id }},PLC_MACROS='{{ plc.macros }}'"
+{%- endif %}
+
 #- Add code
 {%- if plc.code %}
 {%- for line in plc.code %}
