@@ -53,6 +53,7 @@ class EcmcPlc:
         key = 'plc'
         # replace all 'code' with the content of {{ file }}
         self.yamlHandler.yamlData[key]['code'] = self.readPlcFile(self.yamlHandler.yamlData[key]['file'])
+        del self.yamlHandler.yamlData[key]['file']
 
     @staticmethod
     def readPlcFile(filename):
