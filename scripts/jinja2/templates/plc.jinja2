@@ -13,7 +13,7 @@ ecmcConfigOrDie "Cfg.CreatePLC({{ plc.id }},${ECMC_PLC_SAMPLE_RATE_MS})"
 
 #- Load file
 {%- if plc.file %}
-loadPCLFile.cmd "FILE={{ plc.file }},PLC_ID={{ plc.id }},PLC_MACROS='{{ plc.macros }}'"
+loadPLCFile.cmd "FILE={{ plc.file }},PLC_ID={{ plc.id }},PLC_MACROS='{{ plc.macros }}'"
 {%- endif %}
 
 #- Add code
