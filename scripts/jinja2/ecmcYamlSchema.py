@@ -86,18 +86,18 @@ class Schema:
         'default': {},
         'schema': {
             'trajectory': {
-                'type': 'dict',                    
+                'type': 'dict',
                 'schema': {
                     'enable': {'required': False, 'type': 'boolean'},
                     'size': {'required': False, 'type': 'integer'}
-                }                
+                }
             },
             'encoder': {
-                'type': 'dict',                    
+                'type': 'dict',
                 'schema': {
                     'enable': {'required': False, 'type': 'boolean'},
                     'size': {'required': False, 'type': 'integer'}
-                }                
+                }
             }
         }
     }
@@ -173,39 +173,62 @@ class Schema:
             'id': {'oneof': [
                 {'type': 'integer'},
                 {'type': 'string', 'regex': '^\$(\{|\()\w*(=\d*)?(\}|\))$'}
-            ]
+            ],
+            'description': 'unique axis identifier'
             },
             'type': {'type': 'integer', 'default': 'joint',
                      'coerce': lambda v: supportedAxisTypes[str(v).lower().replace(" ", "")]},
             'mode': {'type': 'string', 'default': 'CSV', 'allowed': ['CSV', 'CSP', 'CSP_PC'], 'coerce': lambda v: v.upper()},
             'parameters': {'type': 'string'},
             'healthOutput': {'type': 'string'},
-            'feedSwitchesOutput': {'type': 'string'},
-            'feedSwitchesValue': {'type': 'integer'},
-            'group': {'type': 'string'},
-            'tweakDist': {'type': 'float','default': 1.0},
+            'feedSwitchesOutput': {'type': 'string',
+                'description': 'EtherCAT entry to control feed switches'},
+            'feedSwitchesValue': {'type': 'integer',
+                'description': 'Value to enable feed switches'},
+            'group': {'type': 'string',
+                'description': 'Add axis to group (group will be created if not exists), group id will be stored in GRP<axis.group>_ID for later use.'},
+            'tweakDist': {'type': 'float', 'default': 1.0,
+                'description': 'Tweak value (both ecmc interface and motor record tweak value)'},
             'autoEnable': {'type': 'dict', 'schema': {
-                'enableTimeout': {'type': 'float','default': -1.0},
-                'disableTimeout': {'type': 'float','default': -1.0},
-                'atStartup': {'type': 'boolean','default': False},
-            }},
-            'autoMode': {'type': 'dict', 'schema': {
-                'modeSet': {'type': 'string'},
-                'modeAct': {'type': 'string'},
-                'modeCmdMotion': {'type': 'integer'},
-                'modeCmdHome': {'type': 'integer'},
-            }},
+                'enableTimeout': {'type': 'float', 'default': -1.0,
+                    'description': 'If defined, ecmc tries to auto-enable for a maximum enableTimeout seconds.'},
+                'disableTimeout': {'type': 'float','default': -1.0,
+                    'description': 'If defined, ecmc disables axis after idle (non busy) in disableTime seconds.'},
+                'atStartup': {'type': 'boolean','default': False,
+                    'description': 'Auto enable axis at ioc start.'}
+                },
+                'description': 'ecmc auto enable of axis (Please use this instead of motor record version..)'
+            },
+            'autoMode': {'type': 'dict','schema': {
+                'modeSet': {'type': 'string',
+                    'description': 'Ethercat entry drive mode write (set CSV,CSP,homing)'},
+                'modeAct': {'type': 'string',
+                    'description': 'Ethercat entry drive mode reading (set CSV,CSP,homing)'},
+                'modeCmdMotion': {'type': 'integer',
+                    'description': 'Drive mode value for normal motion (written to axis.autoMode.modeSet when normal motion)'},
+                'modeCmdHome': {'type': 'integer',
+                    'description': 'Drive mode value for when homing (written to axis.drvMode.modeSet when homing)'},
+                },
+                'description': 'Switch drive modes automaticaly for normal motion and homing (smaract for instance)'
+            },
             'features': {'type': 'dict', 'schema': {
-                'disableOnReset': {'type': 'boolean'},
-                'alarmAtHardLimits': {'type': 'boolean'},
-                'blockCom': {'type': 'boolean'},
-                'allowSrcChangeWhenEnabled': {'type': 'boolean'},
+                'disableOnReset': {'type': 'boolean',
+                    'description': '???'},
+                'alarmAtHardLimits': {'type': 'boolean',
+                    'description': '???'},
+                'blockCom': {'type': 'boolean',
+                    'description': 'Block communication to axis'},
+                'allowSrcChangeWhenEnabled': {'type': 'boolean',
+                    'description': 'Allow traj/enc source change when axis is enabled'},
                 'allowedFunctions': {'type': 'dict', 'schema': {
-                    'positioning': {'type': 'boolean'},
-                    'constantVelocity': {'type': 'boolean'},
-                    'homing': {'type': 'boolean'}
+                    'positioning': {'type': 'boolean',
+                        'description': 'Allow positioning'},
+                    'constantVelocity': {'type': 'boolean',
+                        'description': 'Allow constant velocity'},
+                    'homing': {'type': 'boolean',
+                        'description': 'Allow homing'}
                 }}
-            }}            
+            }}
         }
     }
 
@@ -219,24 +242,33 @@ class Schema:
         'required': False,
         'default': {'name': 'axis'},
         'schema': {
-            'name': {'default': 'axis'},
-            'precision': {'type': 'integer', 'min': 0, 'default': 3},
-            'unit': {'type': 'string', 'default': 'mm'},
+            'name': {'default': 'axis',
+                'description': 'Axis name'},
+            'precision': {'type': 'integer', 'min': 0, 'default': 3,
+                'description': 'Decimal count'},
+            'unit': {'type': 'string', 'default': 'mm',
+                'description': 'Unit'},
             'motorRecord': {
                 'type': 'dict',
                 'default': {'enable': True},
                 'schema': {
-                    'enable': {'type': 'boolean', 'default': True},
-                    'fieldInit': {'type': 'string'},
-                    'description': {'type': 'string'},
+                    'enable': {'type': 'boolean', 'default': True,
+                        'description': 'Load motor record'},
+                    'fieldInit': {'type': 'string',
+                        'description': 'Additional motor record field initializations'},
+                    'description': {'type': 'string',
+                        'description': 'Motor record DESC field'},
                     'pvt': {
                         'type': 'dict',
                         'schema': {
-                        'npoints': {'default': 0},
-                        'nreadback': {'default': 0},
-                        }                    
+                        'npoints': {'default': 0,
+                            'description': '???'},
+                        'nreadback': {'default': 0,
+                            'description': '???'},
+                        }
                     },
-                    'syncSoftLimits': {'type': 'boolean', 'default': False},
+                    'syncSoftLimits': {'type': 'boolean', 'default': False,
+                        'description': 'Sync softlimits between motor and ecmc'},
                 }
             }
         }
@@ -246,28 +278,45 @@ class Schema:
         'type': 'dict',
         'required': True,
         'schema': {
-            'numerator': {'type': 'float', 'default': 0},
-            'denominator': {'type': 'integer', 'default': 1, 'min': 1},
-            'type': {'type': 'integer', 'default': 0, 'allowed': [0, 1]},
-            'setpoint': {'required': True, 'type': 'string'},
-            'control': {'required': True, 'type': 'string'},
-            'status': {'type': 'string'},
-            'reduceTorqueEnable': {'type': 'boolean', 'dependencies': ['control', 'reduceTorque']},
-            'reduceTorque': {'type': 'integer', 'min': 0, 'dependencies': ['control', 'reduceTorqueEnable']},
-            'enable': {'type': 'integer', 'min': 0, 'dependencies': ['control']},
-            'enabled': {'type': 'integer', 'min': 0, 'dependencies': ['status']},
+            'numerator': {'type': 'float', 'default': 0,
+                'description': 'Fastest speed in engineering units'},
+            'denominator': {'type': 'integer', 'default': 1, 'min': 1,
+                'description': 'I/O range for ECMC_EC_ALIAS_DRV_VELO_SET'},
+            'type': {'type': 'integer', 'default': 0, 'allowed': [0, 1],
+                'description': 'Stepper: 0. DS402: 1 (DS402 = servos and advanced stepper drives)'},
+            'setpoint': {'required': True, 'type': 'string',
+                'description': 'Velocity setpoint if CSV. Position setpoint if CSP.'},
+            'control': {'required': True, 'type': 'string',
+                'description': 'EtherCAT entry for control word'},
+            'status': {'type': 'string',
+                'description': 'EtherCAT entry for status word'},
+            'reduceTorqueEnable': {'type': 'boolean', 'dependencies': ['control', 'reduceTorque'],
+                'description': 'Enable reduce torque functionality'},
+            'reduceTorque': {'type': 'integer', 'min': 0, 'dependencies': ['control', 'reduceTorqueEnable'],
+                'description': 'Reduce torque bit in drive control word'},
+            'enable': {'type': 'integer', 'min': 0, 'dependencies': ['control'],
+                'description': 'Enable bit index in control word (not used if DS402)'},
+            'enabled': {'type': 'integer', 'min': 0, 'dependencies': ['status'],
+                'description': 'Enabled bit index in status word (not used if DS402)'},
             'brake': {
                 'type': 'dict',
                 'schema': {
-                    'enable': {'required': True, 'type': 'boolean'},
-                    'output': {'required': True, 'type': 'string'},
-                    'openDelay': {'type': 'integer', 'min': 0, 'default': 0},
-                    'closeAhead': {'type': 'integer', 'min': 0, 'default': 0}
+                    'enable': {'required': True, 'type': 'boolean',
+                        'description': 'Enable brake control'},
+                    'output': {'required': True, 'type': 'string',
+                        'description': 'EtherCAT entry to control brake'},
+                    'openDelay': {'type': 'integer', 'min': 0, 'default': 0,
+                        'description': 'number of cycles to wait after enable to disengage the brake'},
+                    'closeAhead': {'type': 'integer', 'min': 0, 'default': 0,
+                        'description': 'number of cycles to wait after the brake was engaged'},
                 }
             },
-            'warning': {'type': 'integer', 'min': 0, 'dependencies': ['status']},
-            'reset': {'type': 'integer', 'min': 0, 'dependencies': ['control']},
-            'error': {'type': 'list', 'maxlength': 3, 'schema': {'anyof_type': ['integer', 'string']}, 'dependencies': ['status']},
+            'warning': {'type': 'integer', 'min': 0, 'dependencies': ['status'],
+                'description': 'status word bit for drive warning'},
+            'reset': {'type': 'integer', 'min': 0, 'dependencies': ['control'],
+                'description': 'control word bit to reset the drive'},
+            'error': {'type': 'list', 'maxlength': 3, 'schema': {'anyof_type': ['integer', 'string']}, 'dependencies': ['status'],
+                'description': 'list of status bits for drive errors'},
         }
     }
 
@@ -275,61 +324,90 @@ class Schema:
         'type': 'dict',
         'required': True,
         'schema': {
-            'source': {'type': 'integer', 'allowed': [0, 1], 'default': 0},
+            'source': {'type': 'integer', 'allowed': [0, 1], 'default': 0,
+                'description': '0 = Encoder value from etehrcat hardware, 1 = Encoder value from PLC'},
             'numerator': {'oneof': [
                 {'type': 'float'},
                 {'type': 'string', 'regex': '^\$(\{|\()\w*(=\d*(\.\d*)?)?(\}|\))$'}
-                ], 'default': 0.0
+                ], 'default': 0.0,
+                'description': 'Scaling numerator'
             },
-            'denominator': {'type': 'integer', 'default': 1, 'min': 1},
-            'type': {'type': 'integer', 'allowed': [0, 1], 'default': 0},
-            'mask': {'type': 'string'},
-            'bits': {'type': 'integer', 'min': 0, 'max': 64, 'default': 16},
-            'absBits': {'type': 'integer', 'min': 0, 'max': 64, 'default': 25},
+            'denominator': {'type': 'integer', 'default': 1, 'min': 1,
+                'description': 'Scaling denominator'},
+            'type': {'type': 'integer', 'allowed': [0, 1], 'default': 0,
+                'description': 'Type: 0=Incremental, 1=Absolute'},
+            'mask': {'type': 'string',
+                'description': '???'},
+            'bits': {'type': 'integer', 'min': 0, 'max': 64, 'default': 16,
+                'description': 'Total bit count of encoder raw data'},
+            'absBits': {'type': 'integer', 'min': 0, 'max': 64, 'default': 25,
+                'description': 'Absolute bit count (for absolute encoders) always least significant part of "bits"'},
             'absOffset': {'oneof': [
                 {'type': 'float'},
                 {'type': 'string', 'regex': '^\$(\{|\()\w*(=\d*(\.\d*)?)?(\}|\))$'}
-                ], 'default': 0.0
+                ], 'default': 0.0,
+                'description': 'Encoder offset in engineering units (for absolute encoders)'
             },
             'lookuptable': {
                 'type': 'dict',
                 'schema': {
-                    'filename': {'required': True, 'type': 'string'},
-                    'range': {'type': 'float'},
-                    'scale': {'type': 'float'},
-                    'enable': {'type': 'boolean'},
+                    'filename': {'required': True, 'type': 'string',
+                        'description': 'Load correction lockuptable file (default enabled if loaded)'},
+                    'range': {'type': 'float',
+                        'description': '???'},
+                    'scale': {'type': 'float',
+                        'description': '???'},
+                    'enable': {'type': 'boolean',
+                        'description': 'Enable lookup table correction'}
                 }
             },
-            'unit': {'type': 'string'},
+            'unit': {'type': 'string',
+                'description': 'Unit'},
             'delayComp': {
                 'type': 'dict',
                 'schema': {
-                    'time': {'required': True, 'type': 'float'},
-                    'enable': {'type': 'boolean'},
-                }
+                    'time': {'required': True, 'type': 'float',
+                        'description': 'Delay time between set and act [cycles]'},
+                    'enable': {'type': 'boolean',
+                        'description': 'enable (defaults to 1 if not set)'},
+                },
+                'description': 'Delay compensation for time between application of setpoint to reading of encoder (normally atleast 1 cycle)'
             },
             'desc': {'type': 'string'},
-            'position': {'type': 'string'},
-            'control': {'type': 'string'},
-            'status': {'type': 'string'},
-            'warning': {'type': 'integer', 'min': 0, 'dependencies': ['status']},
-            'ready': {'type': 'integer', 'min': 0, 'dependencies': ['status']},
-            'reset': {'type': 'integer', 'min': 0, 'dependencies': ['control']},
-            'error': {'type': 'list', 'maxlength': 3, 'schema': {'anyof_type': ['integer', 'string']}, 'dependencies': ['status']},
+            'position': {'type': 'string',
+                'description': 'Ethercat entry for actual position input'},
+            'control': {'type': 'string',
+                'description': 'EtherCAT entry for encoder control word'},
+            'status': {'type': 'string',
+                'description': 'EtherCAT entry for encoder status word'},
+            'warning': {'type': 'integer', 'min': 0, 'dependencies': ['status'],
+                'description': 'Status word bit for encoder warning'},
+            'ready': {'type': 'integer', 'min': 0, 'dependencies': ['status'],
+                'description': 'Status word bit for encoder ready'},
+            'reset': {'type': 'integer', 'min': 0, 'dependencies': ['control'],
+                'description': 'Control word bit to reset the encoder'},
+            'error': {'type': 'list', 'maxlength': 3, 'schema': {'anyof_type': ['integer', 'string']}, 'dependencies': ['status'],
+                'description': 'List of status bits for encoder errors'},
             'filter': filterSchema,
             'latch': {
                 'type': 'dict',
                 'schema': {
-                    'position': {'required': True, 'type': 'string'},
-                    'control': {'type': 'integer', 'default': 0},
-                    'armCmd': {'type': 'integer', 'default': 1},
-                    'armBits': {'type': 'integer', 'default': 1},
+                    'position': {'required': True, 'type': 'string',
+                        'description': '???'},
+                    'control': {'type': 'integer', 'default': 0,
+                        'description': 'Control word bit to arm latch. Used for some homing seqs'},
+                    'armCmd': {'type': 'integer', 'default': 1,
+                        'description': 'Value in dec to arm latch/touch probe'},
+                    'armBits': {'type': 'integer', 'default': 1,
+                        'description': 'Bit size of encoder.latch.armCmd'},
                     'status': {'type': 'integer', 'default': 0},
                 }
             },
-            'primary': {'type': ['boolean', 'integer' ]},
+            'primary': {'type': ['boolean', 'integer'],
+                'description': 'Use this encoder as primary (for control)'},
             'homing': homingSchema,
-            'useAsCSPDrvEnc': {'type': ['boolean', 'integer' ]},
+            'useAsCSPDrvEnc': {'type': ['boolean', 'integer' ],
+                'description': 'Use this encoder as CSP drive encoder (ecmc controller enabled in CSP)'},
         }
     }
 

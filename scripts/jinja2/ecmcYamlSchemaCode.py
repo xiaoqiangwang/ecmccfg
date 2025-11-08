@@ -1,6 +1,4 @@
 import json
-import traceback
-import ecmcYamlSchema
 
 def schema_to_json(key, schema):
     schema = schema.copy()
@@ -67,7 +65,12 @@ def schema_to_json(key, schema):
 
 
 if __name__ == "__main__":
+    import argparse
     import ecmcYamlSchema
+    parser = argparse.ArgumentParser(description='Generate JSON schema from ecmcYamlSchema')
+    parser.add_argument('--output', '-o', type=str, help='Output file (default: stdout)', default=None)
+    args = parser.parse_args()
+
     schema_json = {
         "$schema": "https://json-schema.org/draft-07/schema",
         "title": "ecmcAxis",
@@ -75,16 +78,42 @@ if __name__ == "__main__":
         "type": "object",
         "additionalProperties": False,
         "properties": {},
-        "required": []
+        "required": [],
+        "if": {
+            "properties": {
+                "axis": {
+                    "properties": {
+                        "type": { "enum": list(k for k,v in ecmcYamlSchema.supportedAxisTypes.items() if v == 2) }
+                    }
+                }
+            }
+        },
+        "then": {
+            "not": {
+                "required": ["drive", "controller"]
+            }
+        }
     }
     for key, value in ecmcYamlSchema.Schema.grandSchema.items():
+        # obsolted?
+        if key == 'axisPlc' or key == 'homing':
+            continue
         req, j = schema_to_json(key, value)
         if req:
             schema_json['required'].append(key)
+        if key == 'var':
+            j['additionalProperties'] = True
         schema_json['properties'][key] = j
 
     # The python schema use "coerce" field to convert string to integer.
     # Here we have to deal it manually.
-    schema_json['properties']['axis']['properties']['type']['type'] = ['string', 'integer']
-    schema_json['properties']['axis']['properties']['type']['enum'] = list(ecmcYamlSchema.supportedAxisTypes.keys())
-    print(json.dumps(schema_json, indent=2))
+    axis_type = schema_json['properties']['axis']['properties']['type']
+    axis_type['type'] = ['string', 'integer']
+    axis_type_opt = []
+    axis_type_opt += list(ecmcYamlSchema.supportedAxisTypes.keys())
+    axis_type_opt += set(ecmcYamlSchema.supportedAxisTypes.values())
+    if args.output:
+        with open(args.output, 'w') as f:
+            json.dump(schema_json, f, indent=2)
+    else:
+        print(json.dumps(schema_json, indent=2))
